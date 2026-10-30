@@ -232,7 +232,12 @@ function resumir(nombre: string, r: { ok: boolean; data?: Record<string, unknown
     case "oc_construir_payload":
       return `payload válido · trazabilidad en ${d.trazabilidad}`
     case "oc_generar_evidencia":
-      return `evidencia ${d.ruta}`
+      return `evidencia ${d.ruta} + ${d.ruta_pdf}`
+    case "oc_leer_excel": {
+      const solicitudes = d.solicitudes as { ok: boolean }[] | null
+      const filas = (d.filas as unknown[]).length
+      return `${filas} fila(s)${solicitudes ? ` · ${solicitudes.filter((x) => x.ok).length} solicitud(es) válida(s)` : ""}`
+    }
     case "oc_crear":
       return `OC ${d.numero_oc}${d.idempotente ? " (ya existía)" : ""}${d.retroactiva ? " · retroactiva" : ""}`
     default:
