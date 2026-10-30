@@ -5,12 +5,17 @@
   "description": "Agente conversacional de órdenes de compra SAP (Reto 03, Periferia IT Group)",
   "type": "module",
   "scripts": {
-    "cargar": "bun run scripts/cargar.ts",
+    "dev": "bun --watch src/server.ts",
+    "start": "bun src/server.ts",
     "demo": "bun run demo.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cargar": "bun run scripts/cargar.ts",
+    "conversacion": "bun run scripts/conversacion.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "hono": "^4.13.14",
     "zod": "^4.6.7"
   },
   "devDependencies": {
