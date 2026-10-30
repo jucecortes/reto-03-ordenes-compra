@@ -2,7 +2,7 @@
 
 Agente que lee el paquete de una solicitud de compra, lo valida contra los maestros (RC1–RC10), construye la OC con trazabilidad, genera la evidencia de aprobación y la crea en un SAP simulado, pidiendo confirmación humana para las excepciones.
 
-- **Link para probar:** **URL_PUBLICA** (plan gratuito de Render: la primera visita puede tardar ~1 min en despertar el servicio). Sin clave de acceso.
+- **Link para probar:** **https://reto03-ordenes-compra-jqlg.onrender.com** (plan gratuito de Render: la primera visita puede tardar ~1 min en despertar el servicio). Sin clave de acceso.
 - **Planteamiento de la solución:** [SOLUCION.md](SOLUCION.md) · **Especificación y oráculo:** [spec/reglas.md](spec/reglas.md)
 
 ## Levantar en local
