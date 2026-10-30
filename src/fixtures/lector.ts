@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises"
+import { readFile, readdir } from "node:fs/promises"
 import path from "node:path"
 import { z } from "zod"
 import { contieneAprobado } from "../domain/aprobacion.ts"
@@ -129,4 +129,20 @@ export async function leerPaquete(directory: string, caso: string): Promise<Resu
   } else if (lFac.tipo === "error") marcar("factura.txt", lFac.motivo)
 
   return { ok: true, data: paqueteSchema.parse({ caso, correo, solicitud: solicitud.data, cotizacion, aprobacion, factura, faltantes }) }
+}
+
+export type ResumenCaso = { caso: string; solicitud_id: string | null; asunto: string | null; solicitante: string | null; tieneFactura: boolean }
+
+/** Bandeja de casos para el front: solo metadatos del correo y la solicitud, sin evaluar reglas. */
+export async function listarCasos(directory: string): Promise<ResumenCaso[]> {
+  const dir = rutaFixtures(directory, "solicitudes")
+  const casos = (await readdir(dir)).filter((c) => CASO_VALIDO.test(c)).sort()
+  return Promise.all(
+    casos.map(async (caso) => {
+      const p = await leerPaquete(directory, caso)
+      return p.ok
+        ? { caso, solicitud_id: p.data.solicitud.solicitud_id, asunto: p.data.correo?.asunto ?? null, solicitante: p.data.solicitud.solicitante, tieneFactura: p.data.factura !== null }
+        : { caso, solicitud_id: null, asunto: null, solicitante: null, tieneFactura: false }
+    }),
+  )
 }

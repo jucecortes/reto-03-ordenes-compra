@@ -7,6 +7,7 @@ import { z } from "zod"
 import { Agente, type Evento } from "./agent/ciclo.ts"
 import type { ProveedorLlm } from "./llm/adapter.ts"
 import { ProveedorAnthropic } from "./llm/anthropic.ts"
+import { listarCasos } from "./fixtures/lector.ts"
 
 // API HTTP del agente (PRD §6.4). La clave del modelo solo se lee aquí, de variables de entorno,
 // y nunca se devuelve en respuestas ni se escribe en logs.
@@ -63,6 +64,9 @@ export function crearApp(opciones: { llm?: ProveedorLlm | null; directory?: stri
   const app = new Hono()
 
   app.get("/api/health", (c) => c.json({ ok: true, provider: llm?.proveedor ?? null, model: llm?.modelo ?? config.modelo, llmConfigurado: Boolean(llm) }))
+
+  // Bandeja para el front: casos disponibles con su asunto (sin evaluar reglas ni llamar al modelo).
+  app.get("/api/casos", async (c) => c.json(await listarCasos(opciones.directory ?? raiz)))
 
   app.get("/api/sessions/:id", (c) => {
     const s = agente?.obtener(c.req.param("id"))

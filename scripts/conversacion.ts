@@ -54,3 +54,5 @@ chequear(c2.toolCalls.some((t) => t.nombre === "oc_crear" && t.ok) && !c2.needsC
 console.log("\n── Verificaciones")
 for (const [ok, texto] of verificaciones) console.log(`   ${ok ? "✔" : "✘"} ${texto}`)
 process.exit(verificaciones.every(([ok]) => ok) ? 0 : 1)
+
+export {}

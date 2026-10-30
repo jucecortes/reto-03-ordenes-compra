@@ -1,0 +1,24 @@
+# Blueprint de Render: un servicio Docker que sirve la API y el chat.
+services:
+  - type: web
+    name: reto03-ordenes-compra
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false          # se pega en el panel de Render; nunca en el repositorio
+      - key: LLM_MODEL
+        value: claude-haiku-5-5
+      - key: MAX_ITERACIONES
+        value: "25"
+      - key: MAX_TOKENS_SESION
+        value: "300000"
+      - key: LLM_TIMEOUT_MS
+        value: "60000"
+      - key: RATE_LIMIT
+        value: "30"
