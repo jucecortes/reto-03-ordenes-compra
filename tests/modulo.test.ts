@@ -16,5 +16,5 @@ test("modulo/ coincide con las fuentes (regenerar con bun run scripts/empaquetar
 
 test("las herramientas del módulo son los mismos objetos que las de la app", () => {
   expect(moduloTools.herramientas).toBe(appTools.herramientas)
-  expect(Object.keys(moduloTools.herramientas)).toEqual(["leer_paquete", "validar", "construir_payload", "generar_evidencia", "crear"])
+  expect(Object.keys(moduloTools.herramientas)).toEqual(["leer_paquete", "validar", "construir_payload", "generar_evidencia", "crear", "leer_excel"])
 })

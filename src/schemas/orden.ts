@@ -27,6 +27,6 @@ export const ordenCompraSchema = z.object({
 
 export type OrdenCompra = z.infer<typeof ordenCompraSchema>
 
-/** Fuente de cada valor del payload (HU-3). */
-export type Fuente = "solicitud" | "cotizacion" | "correo" | "aprobacion" | "constante" | "derivado" | `maestro.${string}`
+/** Fuente de cada valor del payload: exactamente las que admite el PRD (HU-3). El detalle va en `nota`. */
+export type Fuente = "solicitud" | "cotizacion" | "derivado" | `maestro.${string}`
 export type Trazabilidad = Record<string, { valor: unknown; fuente: Fuente; nota?: string }>

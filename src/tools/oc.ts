@@ -2,8 +2,9 @@ import { appendFile, mkdir, writeFile, access } from "node:fs/promises"
 import path from "node:path"
 import { z } from "zod"
 import { etiqueta, evaluar, type Evaluacion } from "../domain/evaluar.ts"
-import { sha256, textoEvidencia } from "../domain/evidencia.ts"
+import { archivoEvidenciaPdf, archivoEvidenciaTxt, sha256, textoEvidencia } from "../domain/evidencia.ts"
 import { construirPayload, huellaPayload } from "../domain/payload.ts"
+import { leerExcel } from "../fixtures/excel.ts"
 import { leerMaestros, leerPaquete, type Resultado } from "../fixtures/lector.ts"
 import type { Maestros } from "../schemas/maestros.ts"
 import { ordenCompraSchema, type OrdenCompra } from "../schemas/orden.ts"
@@ -124,13 +125,18 @@ async function cargarYEvaluar(directory: string, caso: string): Promise<Resultad
   return { ok: true, data: { paquete: p.data, maestros: m.data, evaluacion: evaluar(p.data, m.data) } }
 }
 
-async function escribirEvidencia(directory: string, paquete: Paquete): Promise<Resultado<{ ruta: string; sha256: string }>> {
+type Evidencia = { ruta: string; sha256: string; ruta_pdf: string }
+
+/** HU-4: P0 aprobacion.txt (encabezados, cuerpo y sha256) y P1 aprobacion.pdf con el mismo contenido. */
+async function escribirEvidencia(directory: string, paquete: Paquete): Promise<Resultado<Evidencia>> {
   if (!paquete.aprobacion) return { ok: false, error: `${paquete.caso}: no hay correo de aprobación para generar la evidencia.` }
-  const texto = textoEvidencia(paquete.caso, paquete.aprobacion)
-  const ruta = rutaOut(directory, paquete.caso, "aprobacion.txt")
-  await mkdir(path.dirname(ruta), { recursive: true })
-  await writeFile(ruta, texto, "utf-8")
-  return { ok: true, data: { ruta: relativa(directory, ruta), sha256: sha256(texto) } }
+  const contenido = textoEvidencia(paquete.caso, paquete.aprobacion)
+  const txt = rutaOut(directory, paquete.caso, "aprobacion.txt")
+  const pdf = rutaOut(directory, paquete.caso, "aprobacion.pdf")
+  await mkdir(path.dirname(txt), { recursive: true })
+  await writeFile(txt, archivoEvidenciaTxt(contenido), "utf-8")
+  await writeFile(pdf, await archivoEvidenciaPdf(contenido, paquete.aprobacion.fecha))
+  return { ok: true, data: { ruta: relativa(directory, txt), sha256: sha256(contenido), ruta_pdf: relativa(directory, pdf) } }
 }
 
 type FilaControl = {
@@ -214,7 +220,7 @@ export const construir_payload = definir(
 
 export const generar_evidencia = definir(
   "generar_evidencia",
-  "Genera la evidencia de aprobación del caso (out/<caso>/aprobacion.txt con encabezados y cuerpo del correo) y devuelve su ruta y su sha256.",
+  "Genera la evidencia de aprobación del caso (out/<caso>/aprobacion.txt y aprobacion.pdf con encabezados, cuerpo del correo y sha256) y devuelve sus rutas y el sha256.",
   { caso },
   async ({ caso }, ctx) => {
     const p = await leerPaquete(ctx.directory, caso)
@@ -259,7 +265,9 @@ export const crear = definir(
     const previa = await adaptador.buscarOrdenPorReferencia(sol.solicitud_id)
     if (previa) {
       await registrarControl(ctx.directory, { ...base, resultado: "idempotente", numero_oc: previa.numero_oc })
-      return { ok: true, data: { numero_oc: previa.numero_oc, fecha: null, idempotente: true, retroactiva: e.retroactiva } }
+      // La interfaz exige solo numero_oc; si el adaptador informa la fecha original, se devuelve.
+      const fecha = "fecha" in previa && typeof previa.fecha === "string" ? previa.fecha : null
+      return { ok: true, data: { numero_oc: previa.numero_oc, fecha, idempotente: true, retroactiva: e.retroactiva } }
     }
 
     // 4. Confirmación humana (CA3): con excepciones, solo con confirmado = true.
@@ -283,8 +291,15 @@ export const crear = definir(
   },
 )
 
+export const leer_excel = definir(
+  "leer_excel",
+  "Lee un archivo .xlsx del proyecto (por ejemplo una solicitud.xlsx) y devuelve las filas de la primera hoja; si las columnas son las de una solicitud, valida cada fila con el esquema de solicitud.",
+  { ruta: z.string().describe("Ruta relativa al proyecto de un archivo .xlsx, por ejemplo ejemplos/solicitudes.xlsx") },
+  async ({ ruta }, ctx) => leerExcel(ctx.directory, ruta),
+)
+
 /** Registro de herramientas: el nombre que ve el modelo es oc_<export> (PRD §6.2). */
-export const herramientas = { leer_paquete, validar, construir_payload, generar_evidencia, crear }
+export const herramientas = { leer_paquete, validar, construir_payload, generar_evidencia, crear, leer_excel }
 export type NombreHerramienta = `oc_${keyof typeof herramientas}`
 
 /**

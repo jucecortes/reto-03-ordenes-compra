@@ -133,7 +133,7 @@ describe("ciclo del agente", () => {
     const siempre = () => llamar("oc_leer_paquete", { caso: "sol-001" })
     const { modelo, eventos, turno } = montar([siempre, siempre, siempre, () => decir("Tengo el paquete; falta validar.")], 3)
     await turno("procesa sol-001")
-    expect(modelo.herramientasPorLlamada).toEqual([5, 5, 5, 0])
+    expect(modelo.herramientasPorLlamada).toEqual([6, 6, 6, 0])
     expect(resultados(eventos, "oc_leer_paquete")).toHaveLength(3)
   })
 

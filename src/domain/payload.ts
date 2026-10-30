@@ -71,10 +71,10 @@ export function construirPayload(paquete: Paquete, evaluacion: Evaluacion, maest
   const de = (campo: string) => (evaluacion.derivados as Record<string, string>)[campo] !== undefined
   const trazabilidad: Trazabilidad = {
     "referencia.solicitud_id": { valor: sol.solicitud_id, fuente: "solicitud" },
-    "referencia.correo_id": { valor: candidata.referencia.correo_id, fuente: paquete.correo ? "correo" : "derivado" },
+    "referencia.correo_id": { valor: candidata.referencia.correo_id, fuente: "derivado", nota: paquete.correo ? "id del correo de radicación (correo.json)" : "sin correo: se usa <caso>-correo" },
     "referencia.cotizacion_ref": { valor: candidata.referencia.cotizacion_ref, fuente: "cotizacion" },
-    sociedad: { valor: "1000", fuente: "constante", nota: "PRD §7.4" },
-    organizacion_compras: { valor: "1000", fuente: "constante", nota: "PRD §7.4" },
+    sociedad: { valor: "1000", fuente: "derivado", nota: "valor fijo del esquema PRD §7.4" },
+    organizacion_compras: { valor: "1000", fuente: "derivado", nota: "valor fijo del esquema PRD §7.4" },
     "proveedor.codigo_sap": { valor: proveedor.codigo_sap, fuente: "maestro.proveedores" },
     "proveedor.nit": { valor: proveedor.nit, fuente: "maestro.proveedores" },
     "proveedor.nombre": { valor: proveedor.nombre, fuente: "maestro.proveedores" },
@@ -82,10 +82,10 @@ export function construirPayload(paquete: Paquete, evaluacion: Evaluacion, maest
     condiciones_pago: de("condiciones_pago")
       ? { valor: condicionPago, fuente: "maestro.proveedores", nota: "RC7: derivado de condiciones_pago_default" }
       : { valor: condicionPago, fuente: "solicitud" },
-    "aprobador.email": { valor: aprobacion.de, fuente: "aprobacion" },
-    "aprobador.fecha_aprobacion": { valor: aprobacion.fecha, fuente: "aprobacion", nota: `fecha en Bogotá ${fechaBogota(aprobacion.fecha)}` },
-    "aprobador.evidencia_sha256": { valor: evidenciaSha, fuente: "derivado", nota: `sha256 de out/${paquete.caso}/aprobacion.txt` },
-    "posiciones[0].numero": { valor: 10, fuente: "constante", nota: "A15: una posición" },
+    "aprobador.email": { valor: aprobacion.de, fuente: "derivado", nota: "remitente del correo de aprobación (aprobacion.json), validado en RC2" },
+    "aprobador.fecha_aprobacion": { valor: aprobacion.fecha, fuente: "derivado", nota: `fecha del correo de aprobación (aprobacion.json); en Bogotá ${fechaBogota(aprobacion.fecha)}` },
+    "aprobador.evidencia_sha256": { valor: evidenciaSha, fuente: "derivado", nota: `sha256 del contenido de out/${paquete.caso}/aprobacion.txt y .pdf (HU-4)` },
+    "posiciones[0].numero": { valor: 10, fuente: "derivado", nota: "A15: una posición, numerada 10" },
     "posiciones[0].descripcion": {
       valor: descripcion,
       fuente: "solicitud",

@@ -57,7 +57,8 @@ Los valores totales incluyen IVA, igual que en la solicitud y la cotización.
 - Sociedad y organización de compras `1000`. Una posición (número 10) con la descripción recortada a 40 caracteres (límite del texto breve en SAP).
 - Unidad `H` si se compra por horas; si no, `UN`.
 - `excepciones` lista las confirmaciones aceptadas y quién confirmó.
-- La evidencia de aprobación (`out/<caso>/aprobacion.txt`) lleva un sha256 que queda en la OC.
+- La evidencia de aprobación se genera en `out/<caso>/aprobacion.txt` y `out/<caso>/aprobacion.pdf` (mismo contenido). Su sha256 queda en la OC (`aprobador.evidencia_sha256`).
+- `oc_leer_excel` lee una `solicitud.xlsx` (solo `.xlsx` dentro del proyecto) y valida sus filas con el mismo esquema que `solicitud.json`.
 - `oc_crear` es idempotente: repetir la misma solicitud devuelve la OC existente.
 
 ## Compras retroactivas

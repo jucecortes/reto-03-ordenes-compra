@@ -63,12 +63,12 @@ agent/prompt.md            src/knowledge/ordenes-compra.md     spec/reglas.md (s
 src/server.ts              API HTTP
 src/agent/ciclo.ts         ciclo del agente, sesiones, confirmación
 src/llm/                   adapter.ts (interfaz) · anthropic.ts
-src/tools/oc.ts            oc_leer_paquete · oc_validar · oc_construir_payload · oc_generar_evidencia · oc_crear
+src/tools/oc.ts            oc_leer_paquete · oc_validar · oc_construir_payload · oc_generar_evidencia · oc_crear · oc_leer_excel
 src/domain/                reglas.ts (RC1–RC10) · evaluar.ts · payload.ts · evidencia.ts · aprobacion.ts
 src/schemas/               zod: maestros, documentos, paquete (§7.2), orden (§7.4), parsers de cotización/factura
 src/sap/                   adapter.ts (interfaz §7.4) · mock.ts (out/sap/)
-src/fixtures/lector.ts     lectura de fixtures (nunca lanza)
-web/                       chat     demo.ts     tests/ (67 pruebas)     modulo/ (bonus)     Dockerfile · render.yaml
+src/fixtures/              lector.ts (fixtures, nunca lanza) · excel.ts (oc_leer_excel, restringido a .xlsx del proyecto)
+web/                       chat     demo.ts     tests/ (78 pruebas)     modulo/ (bonus)     ejemplos/solicitudes.xlsx     Dockerfile · render.yaml
 ```
 
 ## 3. Ciclo del agente
@@ -234,6 +234,20 @@ Decidir si las retroactivas se toleran con marca o se rechazan es una política 
 | 5 | **Montos en centavos enteros** y comparaciones sin divisiones en coma flotante | Comparar en pesos con decimales | El 2 % de RC5 y el ± 1 de RC10 se evalúan exactos; las pruebas cubren los límites |
 | 6 | **SAP simulado con el archivo como fuente de verdad** (numeración e idempotencia leídas de `ordenes.jsonl`, escrituras en serie) | Contador en memoria | Sobrevive a reinicios y dos creaciones simultáneas no toman el mismo número |
 | 7 | **Bun + Hono + React/Vite** en un solo servicio Docker | Next.js, o separar front y back | `bun run demo.ts` funciona tal como pide el PRD, hay un solo despliegue y la misma URL sirve la API y el chat |
+| 8 | **`oc_leer_excel` restringido**: solo `.xlsx` dentro del proyecto, máximo 5 MB, valida las filas con el esquema de `solicitud.json` | Carga libre de archivos desde el front | El PRD define `oc_leer_excel { ruta }` y `fixtures/` de solo lectura. Leer rutas acotadas evita que la URL pública acepte archivos arbitrarios |
+
+### Dependencias (PRD §8: justificadas)
+
+| Dependencia | Uso | Por qué esta |
+|---|---|---|
+| `zod` | Esquemas de maestros, documentos, paquete, OC y argumentos de herramientas | Obligatoria por el PRD; `z.infer` y `z.toJSONSchema` dan una sola fuente de verdad |
+| `@anthropic-ai/sdk` | Implementación del adaptador LLM | SDK oficial del proveedor elegido: streaming, tiempos límite y reintentos |
+| `hono` | API HTTP y SSE | Mínima, tipada y nativa en Bun; incluye streaming SSE y archivos estáticos |
+| `pdf-lib` | `aprobacion.pdf` (HU-4 P1) | La sugiere el PRD; JavaScript puro, sin binarios ni navegador |
+| `exceljs` | `oc_leer_excel` | Lee `.xlsx` sin binarios nativos; se descartó `xlsx` (SheetJS) de npm por estar desactualizado en ese registro |
+| `react`, `react-dom`, `react-markdown`, `remark-gfm` *(dev)* | Chat y tablas Markdown de las respuestas | Se compilan a estáticos; `react-markdown` no ejecuta HTML crudo |
+| `vite`, `@vitejs/plugin-react` *(dev)* | Compilación del front | Rápido y sin configuración |
+| `typescript`, `bun-types` *(dev)* | Revisión de tipos estricta | `tsc --noEmit`; Bun ejecuta TypeScript sin compilar |
 
 ## 9. Supuestos
 
@@ -261,12 +275,12 @@ Detalle completo en [`spec/reglas.md`](spec/reglas.md) §(c). Los principales:
 | Historia | Estado | Evidencia | Falta para producción |
 |---|---|---|---|
 | HU-1 Leer el paquete | Hecho | `oc_leer_paquete`; adjuntos ausentes como `null` + `faltantes` | Leer `.xlsx` y `.pdf` reales (P1) |
-| HU-2 Validar | Hecho | `oc_validar`: RC1–RC10, 6/6 contra la spec y 67 pruebas | Maestros en línea desde SAP |
-| HU-3 Payload | Hecho | `oc_construir_payload` + `out/<caso>/trazabilidad.json` | Mapeo de imputación de la subárea |
-| HU-4 Evidencia | **Parcial** | P0: `aprobacion.txt` + sha256 enlazado en la OC. P1 (PDF) no hecho | `aprobacion.pdf` con `pdf-lib` y firma digital si auditoría lo exige |
-| HU-5 Crear OC | Hecho | Numeración desde 4500000001, `ordenes.jsonl`, idempotencia, `control.csv` con todos los intentos | Adaptador real (§6) |
+| HU-2 Validar | Hecho | `oc_validar`: RC1–RC10, 6/6 contra la spec y 78 pruebas | Maestros en línea desde SAP |
+| HU-3 Payload | Hecho | `oc_construir_payload` + `out/<caso>/trazabilidad.json`, con fuente `solicitud`, `cotizacion`, `maestro.<nombre>` o `derivado` (más una nota del documento de origen) | Mapeo de imputación de la subárea |
+| HU-4 Evidencia | Hecho | P0: `aprobacion.txt` con encabezados, cuerpo y sha256 del contenido. P1: `aprobacion.pdf` con el mismo contenido (`pdf-lib`, reproducible). El hash es `aprobador.evidencia_sha256` de la OC | Firma digital si auditoría lo exige (§10 del PRD) |
+| HU-5 Crear OC | Hecho | Numeración desde 4500000001, `ordenes.jsonl`, idempotencia (devuelve número y fecha originales), `control.csv` con todos los intentos | Adaptador real (§6) |
 | HU-6 Errores | Hecho | `{ ok: false, error }` legible; pruebas de JSON malformado y monto no numérico | Alertas y monitoreo |
-| P1 `oc_leer_excel` | No hecho | — | — |
+| `oc_leer_excel` (P1) | Hecho | Lee `.xlsx` del proyecto y valida las filas como solicitudes; ejemplo `ejemplos/solicitudes.xlsx` con los 6 casos | Lectura directa de los adjuntos del correo |
 | Bonus `modulo/` | Hecho | Generado desde las mismas fuentes; prueba de no divergencia | — |
 
 ## 11. Uso de IA
@@ -283,6 +297,7 @@ Detalle completo en [`spec/reglas.md`](spec/reglas.md) §(c). Los principales:
   - **Token HMAC de confirmación** reutilizado de una práctica previa: lo reemplacé por `confirmado` + validación por turno en el backend, que respeta el contrato de `oc_crear` (§8, decisión 3).
   - **"Retroactiva si la factura es anterior a la solicitud o a la aprobación":** RC8 solo compara con la solicitud.
   - **Búsqueda del proveedor por nombre cuando el NIT no existe:** la descarté por ser menos conservadora (A2).
+- **Errores de interpretación que corregí:** la IA clasificó como "opcionales" los dos P1 del PRD. Revisado el texto, solo `oc_leer_excel` lleva la palabra "opcional"; `aprobacion.pdf` es P1 de HU-4. Implementé ambos e hice una auditoría requisito por requisito. Esa auditoría encontró además: fuentes de trazabilidad fuera de las cuatro que admite HU-3, el sha256 ausente dentro de `aprobacion.txt`, `bun run dev` sin compilar el front y dependencias sin justificar. Todo está corregido y cubierto por `tests/requisitos.test.ts`.
 - **Errores que la IA cometió y las pruebas detectaron:**
   - el reconocimiento de "Sí" fallaba por la tilde (`\b` no trata "í" como letra);
   - los intentos sobre casos bloqueados no quedaban en `control.csv`;

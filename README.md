@@ -18,10 +18,10 @@ cp .env.example .env    # completar ANTHROPIC_API_KEY
 ```
 
 ```bash
-bun run build && bun run dev
+bun run dev
 ```
 
-Abrir http://localhost:8787. Bun lee `.env` automáticamente. En Windows se puede evitar guardar la clave en un archivo: `$env:ANTHROPIC_API_KEY = Get-Secret -Name ANTHROPIC_API_KEY -AsPlainText; bun run dev` (PowerShell SecretStore).
+Un solo comando compila el chat y levanta el backend (que lo sirve). Abrir http://localhost:8787. Bun lee `.env` automáticamente. En Windows se puede evitar guardar la clave en un archivo: `$env:ANTHROPIC_API_KEY = Get-Secret -Name ANTHROPIC_API_KEY -AsPlainText; bun run dev` (PowerShell SecretStore).
 
 Para desarrollar el front con recarga en caliente: `bun run dev` en una terminal y `bun x vite` en otra (http://localhost:5173, con proxy a la API).
 
@@ -51,11 +51,12 @@ Otros comandos:
 
 | Comando | Para qué |
 |---|---|
-| `bun test` | 67 pruebas: reglas, límites, herramientas, ciclo del agente, API y módulo |
+| `bun test` | 78 pruebas: reglas, límites, herramientas, ciclo del agente, API, módulo y requisitos del PRD (evidencia PDF, trazabilidad, Excel) |
 | `bun run typecheck` | TypeScript estricto |
 | `bun run cargar` | Valida maestros y casos con zod |
 | `bun run scripts/conversacion.ts` | Conversación real contra el servidor en marcha: aprobado, rechazado y retroactivo con confirmación |
 | `bun run scripts/empaquetar-modulo.ts` | Regenera `modulo/` desde las fuentes |
+| `bun run ejemplos` | Regenera `ejemplos/solicitudes.xlsx` (los 6 casos en formato Excel) para probar `oc_leer_excel` |
 
 ## API
 
@@ -76,7 +77,7 @@ Otros comandos:
 | `out/control.csv` | Un intento por fila: `solicitud_id, resultado, numero_oc, retroactiva, bloqueos, confirmaciones, ts` |
 | `out/log.jsonl` | Todas las llamadas a herramientas |
 | `out/<caso>/trazabilidad.json` | Fuente de cada campo del payload |
-| `out/<caso>/aprobacion.txt` | Evidencia de aprobación (su sha256 va en la OC) |
+| `out/<caso>/aprobacion.txt` · `aprobacion.pdf` | Evidencia de aprobación con encabezados, cuerpo y sha256 (el mismo que va en la OC) |
 
 ## Despliegue
 
