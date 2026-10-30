@@ -11,7 +11,8 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "cargar": "bun run scripts/cargar.ts",
-    "conversacion": "bun run scripts/conversacion.ts"
+    "conversacion": "bun run scripts/conversacion.ts",
+    "build": "vite build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
