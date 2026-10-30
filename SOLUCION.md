@@ -17,7 +17,7 @@ flowchart LR
   end
 
   subgraph Backend["src/server.ts · Bun + Hono"]
-    API["POST /api/chat (JSON o SSE)<br/>GET /api/sessions/:id · /api/health · /api/casos"]
+    API["POST /api/chat (JSON o SSE)<br/>GET /api/sessions/:id (+ /evidencias/:caso/:archivo) · /api/health · /api/casos"]
     Ciclo["src/agent/ciclo.ts<br/>tope de iteraciones · confirmación en el backend"]
     LLM["src/llm/adapter.ts<br/>enviar(mensajes, herramientas)"]
     Claude["src/llm/anthropic.ts"]
@@ -68,7 +68,7 @@ src/domain/                reglas.ts (RC1–RC10) · evaluar.ts · payload.ts ·
 src/schemas/               zod: maestros, documentos, paquete (§7.2), orden (§7.4), parsers de cotización/factura
 src/sap/                   adapter.ts (interfaz §7.4) · mock.ts (out/sap/)
 src/fixtures/              lector.ts (fixtures, nunca lanza) · excel.ts (oc_leer_excel, restringido a .xlsx del proyecto)
-web/                       chat     demo.ts     tests/ (78 pruebas)     modulo/ (bonus)     ejemplos/solicitudes.xlsx     Dockerfile · render.yaml
+web/                       chat     demo.ts     tests/ (81 pruebas)     modulo/ (bonus)     ejemplos/solicitudes.xlsx     Dockerfile · render.yaml
 ```
 
 ## 3. Ciclo del agente
@@ -275,9 +275,9 @@ Detalle completo en [`spec/reglas.md`](spec/reglas.md) §(c). Los principales:
 | Historia | Estado | Evidencia | Falta para producción |
 |---|---|---|---|
 | HU-1 Leer el paquete | Hecho | `oc_leer_paquete`; adjuntos ausentes como `null` + `faltantes` | Leer `.xlsx` y `.pdf` reales (P1) |
-| HU-2 Validar | Hecho | `oc_validar`: RC1–RC10, 6/6 contra la spec y 78 pruebas | Maestros en línea desde SAP |
+| HU-2 Validar | Hecho | `oc_validar`: RC1–RC10, 6/6 contra la spec y 81 pruebas | Maestros en línea desde SAP |
 | HU-3 Payload | Hecho | `oc_construir_payload` + `out/<caso>/trazabilidad.json`, con fuente `solicitud`, `cotizacion`, `maestro.<nombre>` o `derivado` (más una nota del documento de origen) | Mapeo de imputación de la subárea |
-| HU-4 Evidencia | Hecho | P0: `aprobacion.txt` con encabezados, cuerpo y sha256 del contenido. P1: `aprobacion.pdf` con el mismo contenido (`pdf-lib`, reproducible). El hash es `aprobador.evidencia_sha256` de la OC | Firma digital si auditoría lo exige (§10 del PRD) |
+| HU-4 Evidencia | Hecho | P0: `aprobacion.txt` con encabezados, cuerpo y sha256 del contenido. P1: `aprobacion.pdf` con el mismo contenido (`pdf-lib`, reproducible). El hash es `aprobador.evidencia_sha256` de la OC. Descarga desde el chat, solo para la sesión que la generó | Firma digital si auditoría lo exige (§10 del PRD) |
 | HU-5 Crear OC | Hecho | Numeración desde 4500000001, `ordenes.jsonl`, idempotencia (devuelve número y fecha originales), `control.csv` con todos los intentos | Adaptador real (§6) |
 | HU-6 Errores | Hecho | `{ ok: false, error }` legible; pruebas de JSON malformado y monto no numérico | Alertas y monitoreo |
 | `oc_leer_excel` (P1) | Hecho | Lee `.xlsx` del proyecto y valida las filas como solicitudes; ejemplo `ejemplos/solicitudes.xlsx` con los 6 casos | Lectura directa de los adjuntos del correo |

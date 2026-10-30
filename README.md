@@ -51,7 +51,7 @@ Otros comandos:
 
 | Comando | Para qué |
 |---|---|
-| `bun test` | 78 pruebas: reglas, límites, herramientas, ciclo del agente, API, módulo y requisitos del PRD (evidencia PDF, trazabilidad, Excel) |
+| `bun test` | 81 pruebas: reglas, límites, herramientas, ciclo del agente, API (incluida la descarga de evidencias), módulo y requisitos del PRD (evidencia PDF, trazabilidad, Excel) |
 | `bun run typecheck` | TypeScript estricto |
 | `bun run cargar` | Valida maestros y casos con zod |
 | `bun run scripts/conversacion.ts` | Conversación real contra el servidor en marcha: aprobado, rechazado y retroactivo con confirmación |
@@ -64,6 +64,7 @@ Otros comandos:
 |---|---|---|
 | `POST` | `/api/chat` | `{ sessionId?, message, confirmar? }` → `{ sessionId, reply, toolCalls[], needsConfirmation, confirmacion, avisos }`. Con `Accept: text/event-stream` responde un stream SSE de eventos: `sesion`, `texto`, `herramienta_inicio`, `herramienta_resultado`, `confirmacion_requerida`, `aviso`, `fin` |
 | `GET` | `/api/sessions/:id` | Historial completo de la sesión, más `pendiente` y `tokens` |
+| `GET` | `/api/sessions/:id/evidencias/:caso/:archivo` | Descarga `aprobacion.txt` o `aprobacion.pdf` (adjunto). Solo para la sesión que generó esa evidencia: otra sesión recibe 403. Las tarjetas del chat muestran los enlaces |
 | `GET` | `/api/health` | `{ ok: true, provider, model, llmConfigurado }`, sin exponer claves |
 | `GET` | `/api/casos` | Casos disponibles con su asunto (para la bandeja del chat) |
 

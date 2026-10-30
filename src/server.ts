@@ -1,13 +1,14 @@
 import { existsSync, readFileSync } from "node:fs"
+import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { Hono, type Context } from "hono"
 import { serveStatic } from "hono/bun"
 import { streamSSE } from "hono/streaming"
 import { z } from "zod"
-import { Agente, type Evento } from "./agent/ciclo.ts"
+import { Agente, ARCHIVOS_EVIDENCIA, type Evento } from "./agent/ciclo.ts"
 import type { ProveedorLlm } from "./llm/adapter.ts"
 import { ProveedorAnthropic } from "./llm/anthropic.ts"
-import { listarCasos } from "./fixtures/lector.ts"
+import { CASO_VALIDO, listarCasos } from "./fixtures/lector.ts"
 
 // API HTTP del agente (PRD §6.4). La clave del modelo solo se lee aquí, de variables de entorno,
 // y nunca se devuelve en respuestas ni se escribe en logs.
@@ -72,6 +73,24 @@ export function crearApp(opciones: { llm?: ProveedorLlm | null; directory?: stri
     const s = agente?.obtener(c.req.param("id"))
     if (!s) return c.json({ ok: false, error: "Sesión no encontrada" }, 404)
     return c.json({ id: s.id, creada: s.creada, tokens: s.tokens, pendiente: s.pendiente, historial: s.historial })
+  })
+
+  // Descarga de la evidencia de aprobación. Acceso: solo la sesión que la generó (el id de sesión es un
+  // UUID aleatorio que solo conoce ese navegador). Nombres de archivo en lista blanca: sin rutas arbitrarias.
+  app.get("/api/sessions/:id/evidencias/:caso/:archivo", async (c) => {
+    const s = agente?.obtener(c.req.param("id"))
+    const { caso, archivo } = c.req.param()
+    if (!s) return c.json({ ok: false, error: "Sesión no encontrada" }, 404)
+    if (!CASO_VALIDO.test(caso) || !(ARCHIVOS_EVIDENCIA as readonly string[]).includes(archivo)) return c.json({ ok: false, error: "Evidencia no encontrada" }, 404)
+    if (!s.evidencias.includes(caso)) return c.json({ ok: false, error: `Esta sesión no generó la evidencia de ${caso}; no tiene acceso a ella.` }, 403)
+    const contenido = await readFile(path.join(opciones.directory ?? raiz, "out", caso, archivo)).catch(() => null)
+    if (!contenido) return c.json({ ok: false, error: "La evidencia ya no está disponible; vuelve a generarla." }, 404)
+    return c.body(new Uint8Array(contenido), 200, {
+      "content-type": archivo.endsWith(".pdf") ? "application/pdf" : "text/plain; charset=utf-8",
+      "content-disposition": `attachment; filename="${caso}-${archivo}"`,
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    })
   })
 
   app.post("/api/chat", async (c) => {

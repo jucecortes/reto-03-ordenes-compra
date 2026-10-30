@@ -61,7 +61,8 @@ describe("HU-5 · oc_crear idempotente devuelve { numero_oc, fecha, idempotente 
     const p = await llamar("oc_construir_payload", { caso: "sol-001" })
     const primera = await llamar("oc_crear", { caso: "sol-001", payload: p.data.orden })
     const segunda = await llamar("oc_crear", { caso: "sol-001", payload: p.data.orden })
-    expect(segunda.data).toEqual({ numero_oc: primera.data.numero_oc, fecha: primera.data.fecha, idempotente: true, retroactiva: false })
+    expect(segunda.data).toMatchObject({ numero_oc: primera.data.numero_oc, fecha: primera.data.fecha, idempotente: true, retroactiva: false })
+    expect(segunda.data.nota).toContain("creación original")
   })
 })
 
@@ -81,5 +82,15 @@ describe("oc_leer_excel { ruta } → { filas[] }", () => {
     ["ejemplos/no-existe.xlsx", "No existe"],
   ])("rechaza %s", async (ruta, motivo) => {
     expect(await llamar("oc_leer_excel", { ruta })).toMatchObject({ ok: false, error: expect.stringContaining(motivo) })
+  })
+})
+
+describe("oc_validar informa el conteo de controles ya calculado", () => {
+  test.each([
+    ["sol-001", "10 de 10"],
+    ["sol-004", "9 de 10"],
+  ])("%s → %s", async (caso, esperado) => {
+    const r = await llamar("oc_validar", { caso })
+    expect(r.data.controles_cumplen).toBe(esperado)
   })
 })

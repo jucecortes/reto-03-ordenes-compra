@@ -1,6 +1,6 @@
 # Verificación de requisitos del PRD
 
-Matriz requisito → implementación → evidencia. Cada fila se comprobó contra el código y las pruebas (`bun test`, 78 pruebas), no de memoria. Prioridades tal como las marca el PRD: **P0** obligatorio, **P1** sin calificativo, **P1 opcional** cuando el PRD lo dice literalmente.
+Matriz requisito → implementación → evidencia. Cada fila se comprobó contra el código y las pruebas (`bun test`, 81 pruebas), no de memoria. Prioridades tal como las marca el PRD: **P0** obligatorio, **P1** sin calificativo, **P1 opcional** cuando el PRD lo dice literalmente.
 
 ## Historias de usuario (§5)
 
@@ -14,9 +14,10 @@ Matriz requisito → implementación → evidencia. Cada fila se comprobó contr
 | HU-3 | Cada valor trazable a `solicitud`, `cotizacion`, `maestro.<nombre>` o `derivado`, en `out/<caso>/trazabilidad.json` | `Fuente` limitada a esos cuatro valores | `tests/requisitos.test.ts` (HU-3) |
 | HU-4 **P0** | `aprobacion.txt` con encabezados (de, para, fecha, asunto), cuerpo y sha256 del contenido | `src/domain/evidencia.ts` | `requisitos`: encabezados y línea sha256 verificada |
 | HU-4 **P1** | `aprobacion.pdf` con el mismo contenido (`pdf-lib` o similar) | `archivoEvidenciaPdf` (pdf-lib, reproducible) | `requisitos`: `%PDF-` y bytes idénticos entre ejecuciones |
+| HU-4 (extra) | Descarga de la evidencia desde el chat con control de acceso | `GET /api/sessions/:id/evidencias/:caso/:archivo`: lista blanca de archivos, solo la sesión que la generó | `fase3`: 200 para la dueña, 403 para otra sesión, 404 fuera de la lista |
 | HU-5 | `oc_crear` solo si `apta` y (sin confirmaciones o `confirmado`) | `src/tools/oc.ts` + backend (`src/agent/ciclo.ts`) | `fase2`, `fase3` |
 | HU-5 | Número secuencial desde 4500000001, `out/sap/ordenes.jsonl`, devuelve `{ numero_oc, fecha }` | `src/sap/mock.ts` | `demo.ts`: 4500000001–4500000004 |
-| HU-5 | La misma `solicitud_id` dos veces → número existente (idempotencia) | `buscarOrdenPorReferencia` | `demo.ts`; `requisitos`: misma fecha y número |
+| HU-5 | La misma `solicitud_id` dos veces → número existente (idempotencia) | `buscarOrdenPorReferencia` | `demo.ts`; `requisitos`: misma fecha y número; `nota` aclara que es la fecha original |
 | HU-5 | Cada intento (creada, bloqueada o pendiente) → fila en `out/control.csv` con las 7 columnas | `registrarControl` | `demo.ts`: 10 intentos registrados |
 | HU-6 | Paquete incompleto, JSON malformado, monto no numérico → `{ ok: false, error }` legible | lector + `definir()` (nunca lanza) | `fase1` y `fase2` |
 

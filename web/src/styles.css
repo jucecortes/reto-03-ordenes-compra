@@ -418,6 +418,22 @@ button {
 }
 
 .herramienta__error,
+.descargas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 12px 10px 36px;
+}
+
+.descargas .boton--enlace {
+  color: inherit;
+  padding: 4px 10px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
 .oc-creada,
 .validacion {
   margin: 0;
@@ -719,6 +735,7 @@ button {
 
   .herramienta__error,
   .oc-creada,
+  .descargas,
   .validacion,
   .herramienta__detalle {
     padding-left: 12px;

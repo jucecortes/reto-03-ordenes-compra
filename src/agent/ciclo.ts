@@ -21,6 +21,8 @@ export type Evento =
       ms: number
       /** El modelo pidió confirmado=true sin confirmación del usuario y el backend lo anuló. */
       confirmacionAnulada?: boolean
+      /** Enlaces de descarga de la evidencia, válidos solo para esta sesión (GET /api/sessions/:id/evidencias/...). */
+      descargas?: { archivo: string; url: string }[]
     }
   | { tipo: "confirmacion_requerida"; caso: string; confirmaciones: { codigo: string; detalle: string }[] }
   | { tipo: "aviso"; nivel: "info" | "error"; texto: string }
@@ -36,6 +38,8 @@ export type Sesion = {
   /** Historial visible: lo que devuelve GET /api/sessions/:id y lo que pinta el front. */
   historial: (Evento | { tipo: "usuario"; texto: string; confirmar?: boolean })[]
   pendiente: Pendiente | null
+  /** Casos cuya evidencia generó esta sesión: solo esos puede descargar. */
+  evidencias: string[]
   tokens: number
   ocupada: boolean
   creada: string
@@ -78,7 +82,7 @@ export class Agente {
   sesion(id?: string): Sesion {
     const existente = id ? this.sesiones.get(id) : undefined
     if (existente) return existente
-    const nueva: Sesion = { id: id ?? randomUUID(), mensajes: [], historial: [], pendiente: null, tokens: 0, ocupada: false, creada: new Date().toISOString() }
+    const nueva: Sesion = { id: id ?? randomUUID(), mensajes: [], historial: [], pendiente: null, evidencias: [], tokens: 0, ocupada: false, creada: new Date().toISOString() }
     this.sesiones.set(nueva.id, nueva)
     return nueva
   }
@@ -186,6 +190,7 @@ export class Agente {
     })
     const r = JSON.parse(contenido) as { ok: boolean; data?: Record<string, unknown>; error?: string }
     this.actualizarPendiente(sesion, llamada.nombre, args, r)
+    const descargas = registrarEvidencia(sesion, llamada.nombre, args, r)
 
     emitir({
       tipo: "herramienta_resultado",
@@ -196,6 +201,7 @@ export class Agente {
       resultado: r.ok ? r.data : { error: r.error },
       ms: Date.now() - inicio,
       ...(confirmacionAnulada ? { confirmacionAnulada } : {}),
+      ...(descargas ? { descargas } : {}),
     })
     return { id: llamada.id, nombre: llamada.nombre, contenido, error: !r.ok }
   }
@@ -215,6 +221,21 @@ export class Agente {
     }
     if (nombre === "oc_crear" && r.ok && sesion.pendiente?.caso === caso) sesion.pendiente = null
   }
+}
+
+/** Archivos de evidencia que se pueden descargar (HU-4); cualquier otro nombre se rechaza. */
+export const ARCHIVOS_EVIDENCIA = ["aprobacion.txt", "aprobacion.pdf"] as const
+
+export const urlEvidencia = (sessionId: string, caso: string, archivo: string) =>
+  `/api/sessions/${encodeURIComponent(sessionId)}/evidencias/${encodeURIComponent(caso)}/${archivo}`
+
+/** Si la herramienta generó la evidencia, la sesión gana acceso a ese caso y se devuelven sus enlaces. */
+function registrarEvidencia(sesion: Sesion, nombre: string, args: unknown, r: { ok: boolean; data?: Record<string, unknown> }) {
+  const caso = esObjeto(args) && typeof args.caso === "string" ? args.caso : null
+  const genero = nombre === "oc_generar_evidencia" || (nombre === "oc_crear" && esObjeto(r.data?.evidencia))
+  if (!caso || !r.ok || !genero) return undefined
+  if (!sesion.evidencias.includes(caso)) sesion.evidencias.push(caso)
+  return ARCHIVOS_EVIDENCIA.map((archivo) => ({ archivo, url: urlEvidencia(sesion.id, caso, archivo) }))
 }
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null

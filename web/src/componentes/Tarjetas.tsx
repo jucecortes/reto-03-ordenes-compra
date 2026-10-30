@@ -78,6 +78,16 @@ export function TarjetaHerramienta({ h }: { h: Herramienta }) {
           {(r.resultado as { idempotente?: boolean }).idempotente ? " (ya existía: idempotente)" : " creada en SAP simulado"}
         </p>
       )}
+      {r?.ok && r.descargas && (
+        <p className="descargas">
+          <span className="tenue">Evidencia:</span>
+          {r.descargas.map((d) => (
+            <a key={d.archivo} className="boton boton--enlace" href={d.url} download>
+              ⤓ {d.archivo}
+            </a>
+          ))}
+        </p>
+      )}
       {abierta && (
         <div className="herramienta__detalle">
           <div>

@@ -195,3 +195,38 @@ describe("API HTTP (PRD §6.4)", () => {
     expect((await pedir()).status).toBe(429)
   })
 })
+
+describe("descarga de la evidencia (solo la sesión que la generó)", () => {
+  test("enlaces en la tarjeta, 200 para la sesión dueña y 403/404 para el resto", async () => {
+    const app = crearApp({
+      llm: new ModeloGuionado([
+        () => llamar("oc_generar_evidencia", { caso: "sol-001" }),
+        () => decir("Evidencia lista."),
+        () => decir("hola"),
+      ]),
+      directory,
+    })
+    const chat = async (message: string) =>
+      (await app.request("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message }) })).json()
+
+    const duena = await chat("genera la evidencia de sol-001")
+    const descargas = duena.toolCalls[0].descargas as { archivo: string; url: string }[]
+    expect(descargas.map((d) => d.archivo)).toEqual(["aprobacion.txt", "aprobacion.pdf"])
+
+    const pdf = await app.request(descargas[1]!.url)
+    expect(pdf.status).toBe(200)
+    expect(pdf.headers.get("content-type")).toBe("application/pdf")
+    expect(pdf.headers.get("content-disposition")).toBe('attachment; filename="sol-001-aprobacion.pdf"')
+    expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 5))).toBe("%PDF-")
+    const txt = await app.request(descargas[0]!.url)
+    expect(await txt.text()).toContain("sha256")
+
+    // Otra sesión no puede descargar lo que no generó, aunque conozca el caso.
+    const otra = await chat("hola")
+    expect((await app.request(`/api/sessions/${otra.sessionId}/evidencias/sol-001/aprobacion.pdf`)).status).toBe(403)
+    // Sesión inexistente, archivo fuera de la lista blanca o caso inválido.
+    expect((await app.request("/api/sessions/no-existe/evidencias/sol-001/aprobacion.pdf")).status).toBe(404)
+    expect((await app.request(`/api/sessions/${duena.sessionId}/evidencias/sol-001/trazabilidad.json`)).status).toBe(404)
+    expect((await app.request(`/api/sessions/${duena.sessionId}/evidencias/..%2F..%2Fpackage.json/aprobacion.txt`)).status).toBe(404)
+  })
+})

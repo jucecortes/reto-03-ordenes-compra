@@ -197,6 +197,8 @@ export const validar = definir(
         retroactiva: e.retroactiva,
         impuestos: e.impuestos,
         controles: e.controles.map((r) => ({ regla: r.regla, ok: r.ok, tipo: r.tipo, codigo: r.codigo, detalle: r.detalle })),
+        // Conteo ya calculado: el modelo lo copia en vez de contar filas.
+        controles_cumplen: `${e.controles.filter((r) => r.ok).length} de ${e.controles.length}`,
       },
     }
   },
@@ -267,7 +269,19 @@ export const crear = definir(
       await registrarControl(ctx.directory, { ...base, resultado: "idempotente", numero_oc: previa.numero_oc })
       // La interfaz exige solo numero_oc; si el adaptador informa la fecha original, se devuelve.
       const fecha = "fecha" in previa && typeof previa.fecha === "string" ? previa.fecha : null
-      return { ok: true, data: { numero_oc: previa.numero_oc, fecha, idempotente: true, retroactiva: e.retroactiva } }
+      return {
+        ok: true,
+        data: {
+          numero_oc: previa.numero_oc,
+          fecha,
+          idempotente: true,
+          retroactiva: e.retroactiva,
+          // Explícito para que el modelo no confunda la fecha original con la de este intento.
+          nota: fecha
+            ? `La OC ya existía: no se creó otra. "fecha" es la de su creación original en SAP (${fecha}), no la de este intento.`
+            : "La OC ya existía: no se creó otra. El adaptador SAP no informa la fecha de creación original.",
+        },
+      }
     }
 
     // 4. Confirmación humana (CA3): con excepciones, solo con confirmado = true.
